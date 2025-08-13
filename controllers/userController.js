@@ -1,6 +1,7 @@
-const { createUser, getUserById, getUserByMobile, verifyPassword } = require('../models/user');
-const { createWallet, getWalletByUserId, updateWalletBalance } = require('../models/Wallet');
-const { query } = require('../models/db');
+// Correct imports with exact filenames
+const { createUser, getUserById, getUserByMobile, verifyPassword } = require('../models/user'); // lowercase
+const { createWallet, getWalletByUserId, updateWalletBalance } = require('../models/Wallet');   // capital W
+const { query } = require('../models/db');                                                         // lowercase
 const { hash } = require('bcrypt');
 
 // Format timestamp to "6 Aug 2025, 12:16 AM"
@@ -55,14 +56,13 @@ function validateMobile(mobile) {
   };
 }
 
+// Register user
 async function registerUser(req, res) {
   try {
     const { mobile } = req.body;
     const { isValid, payment_method, reason } = validateMobile(mobile);
 
-    if (!isValid) {
-      return res.status(400).json({ error: reason });
-    }
+    if (!isValid) return res.status(400).json({ error: reason });
 
     const userPayload = { ...req.body, payment_method };
     const userId = await createUser(userPayload);
@@ -91,29 +91,22 @@ async function registerUser(req, res) {
     if (err.code === 'ER_DUP_ENTRY' && err.sqlMessage.includes('mobile')) {
       return res.status(409).json({ error: 'Mobile number already registered' });
     }
-
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed' });
   }
 }
 
+// Login user
 async function loginUser(req, res) {
   try {
     const { mobile, password } = req.body;
-
-    if (!mobile || !password) {
-      return res.status(400).json({ error: 'Mobile and password are required' });
-    }
+    if (!mobile || !password) return res.status(400).json({ error: 'Mobile and password are required' });
 
     const user = await getUserByMobile(mobile);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     const passwordMatch = await verifyPassword(password, user.password_hash);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Incorrect password' });
-    }
+    if (!passwordMatch) return res.status(401).json({ error: 'Incorrect password' });
 
     const wallet = await getWalletByUserId(user.id);
 
@@ -139,15 +132,12 @@ async function loginUser(req, res) {
   }
 }
 
+// Get user balance
 async function getUserBalance(req, res) {
   try {
     const userId = req.params.id;
     const wallet = await getWalletByUserId(userId);
-
-    if (!wallet) {
-      return res.status(404).json({ error: 'Wallet not found' });
-    }
-
+    if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
     res.json({ balance: formatUGX(wallet.balance) });
   } catch (err) {
     console.error('Balance fetch error:', err);
@@ -155,41 +145,27 @@ async function getUserBalance(req, res) {
   }
 }
 
+// Deposit funds
 async function depositToUser(req, res) {
   try {
     const userId = req.params.id;
     const { amount } = req.body;
-
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid deposit amount' });
-    }
+    if (!amount || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid deposit amount' });
 
     const wallet = await getWalletByUserId(userId);
-    if (!wallet) {
-      return res.status(404).json({ error: 'Wallet not found' });
-    }
+    if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
 
     const depositAmount = parseFloat(amount);
     const newBalance = parseFloat(wallet.balance) + depositAmount;
-
     await updateWalletBalance(userId, newBalance);
 
     const user = await getUserById(userId);
     const paymentMethod = user.payment_method || resolvePaymentMethod(user.mobile);
 
     await query(
-      `INSERT INTO sejjtransactions 
-        (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
-      VALUES (?, ?, ?, ?, 'deposit', ?, ?, ?)`,
-      [
-        userId,
-        wallet.id,
-        depositAmount,
-        newBalance,
-        paymentMethod,
-        user.mobile,
-        'Deposit via API'
-      ]
+      `INSERT INTO sejjtransactions (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description)
+       VALUES (?, ?, ?, ?, 'deposit', ?, ?, ?)`,
+      [userId, wallet.id, depositAmount, newBalance, paymentMethod, user.mobile, 'Deposit via API']
     );
 
     res.status(200).json({ balance: formatUGX(newBalance) });
@@ -199,47 +175,30 @@ async function depositToUser(req, res) {
   }
 }
 
+// Withdraw funds
 async function withdrawFromUser(req, res) {
   try {
     const userId = req.params.id;
     const { amount } = req.body;
-
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid withdrawal amount' });
-    }
+    if (!amount || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid withdrawal amount' });
 
     const wallet = await getWalletByUserId(userId);
-    if (!wallet) {
-      return res.status(404).json({ error: 'Wallet not found' });
-    }
+    if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
 
     const currentBalance = parseFloat(wallet.balance);
     const withdrawalAmount = parseFloat(amount);
-
-    if (withdrawalAmount > currentBalance) {
-      return res.status(400).json({ error: 'Insufficient balance' });
-    }
+    if (withdrawalAmount > currentBalance) return res.status(400).json({ error: 'Insufficient balance' });
 
     const newBalance = currentBalance - withdrawalAmount;
-
     await updateWalletBalance(userId, newBalance);
 
     const user = await getUserById(userId);
     const paymentMethod = user.payment_method || resolvePaymentMethod(user.mobile);
 
     await query(
-      `INSERT INTO sejjtransactions 
-        (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
-      VALUES (?, ?, ?, ?, 'withdraw', ?, ?, ?)`,
-      [
-        userId,
-        wallet.id,
-        withdrawalAmount,
-        newBalance,
-        paymentMethod,
-        user.mobile,
-        'Withdrawal via API'
-      ]
+      `INSERT INTO sejjtransactions (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description)
+       VALUES (?, ?, ?, ?, 'withdraw', ?, ?, ?)`,
+      [userId, wallet.id, withdrawalAmount, newBalance, paymentMethod, user.mobile, 'Withdrawal via API']
     );
 
     res.status(200).json({ balance: formatUGX(newBalance) });
@@ -249,33 +208,21 @@ async function withdrawFromUser(req, res) {
   }
 }
 
+// Change password
 async function changeUserPassword(req, res) {
   try {
     const { mobile, currentPassword, newPassword } = req.body;
-
-    if (!mobile || !currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'All fields are required.' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
-    }
+    if (!mobile || !currentPassword || !newPassword) return res.status(400).json({ error: 'All fields are required.' });
+    if (newPassword.length < 6) return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
 
     const user = await getUserByMobile(mobile);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found.' });
 
     const match = await verifyPassword(currentPassword, user.password_hash);
-    if (!match) {
-      return res.status(401).json({ error: 'Current password is incorrect.' });
-    }
+    if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
 
     const newHash = await hash(newPassword, 10);
-    await query(
-      'UPDATE sejjbetusers SET password_hash = ? WHERE mobile = ?',
-      [newHash, mobile]
-    );
+    await query('UPDATE sejjbetusers SET password_hash = ? WHERE mobile = ?', [newHash, mobile]);
 
     res.json({ message: 'Password updated successfully.' });
   } catch (err) {
