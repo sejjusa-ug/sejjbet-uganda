@@ -3,13 +3,13 @@ const {
   getUserById,
   getUserByMobile,
   verifyPassword
-} = require('../models/user');
+} = require('../models/user.j');
 
 const {
   createWallet,
   getWalletByUserId,
   updateWalletBalance
-} = require('../models/Wallet');
+} = require('../models/Wallet.j');
 
 const db = require('../models/db'); // ✅ Needed for password update and transactions
 const bcrypt = require('bcrypt');   // ✅ Needed for hashing
