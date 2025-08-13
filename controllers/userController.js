@@ -1,6 +1,6 @@
-import { createUser, getUserById, getUserByMobile, verifyPassword } from '../models/user';
+import { createUser, getUserById, getUserByMobile, verifyPassword } from '../models/user.js';
 
-import { createWallet, getWalletByUserId, updateWalletBalance } from '../models/Wallet';
+import { createWallet, getWalletByUserId, updateWalletBalance } from '../models/Wallet.js';
 
 import { query } from '../models/db'; // ✅ Needed for password update and transactions
 import { hash } from 'bcrypt';   // ✅ Needed for hashing
