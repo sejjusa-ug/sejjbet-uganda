@@ -1,13 +1,9 @@
+import { createUser, getUserById, getUserByMobile, verifyPassword } from '../models/user';
 
+import { createWallet, getWalletByUserId, updateWalletBalance } from '../models/Wallet';
 
-const {
-  createWallet,
-  getWalletByUserId,
-  updateWalletBalance
-} = require('../models/Wallet.j');
-
-const db = require('../models/db'); // ✅ Needed for password update and transactions
-const bcrypt = require('bcrypt');   // ✅ Needed for hashing
+import { query } from '../models/db'; // ✅ Needed for password update and transactions
+import { hash } from 'bcrypt';   // ✅ Needed for hashing
 
 // Format timestamp to "6 Aug 2025, 12:16 AM"
 function formatDate(isoString) {
@@ -184,7 +180,7 @@ async function depositToUser(req, res) {
     await updateWalletBalance(userId, newBalance);
 
     // Log transaction
-    await db.query(
+    await query(
       `INSERT INTO sejjtransactions 
         (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
       VALUES (?, ?, ?, ?, 'deposit', ?, ?, ?)`,
@@ -238,7 +234,7 @@ async function withdrawFromUser(req, res) {
     const paymentMethod = user.payment_method || resolvePaymentMethod(user.mobile);
 
     // Log transaction
-    await db.query(
+    await query(
       `INSERT INTO sejjtransactions 
         (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
       VALUES (?, ?, ?, ?, 'withdraw', ?, ?, ?)`,
@@ -283,8 +279,8 @@ async function changeUserPassword(req, res) {
       return res.status(401).json({ error: 'Current password is incorrect.' });
     }
 
-    const newHash = await bcrypt.hash(newPassword, 10);
-    await db.query(
+    const newHash = await hash(newPassword, 10);
+    await query(
       'UPDATE sejjbetusers SET password_hash = ? WHERE mobile = ?',
       [newHash, mobile]
     );
@@ -296,7 +292,7 @@ async function changeUserPassword(req, res) {
   }
 }
 
-module.exports = {
+export default {
   registerUser,
   loginUser,
   getUserBalance,

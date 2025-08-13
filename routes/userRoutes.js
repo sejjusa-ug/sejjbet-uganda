@@ -5,7 +5,7 @@ const {
   loginUser,
   getUserBalance,
   changeUserPassword
-} = require('../controllers/userController');
+} = require('../controllers/userController').default;
 const db = require('../models/db'); // adjust path if needed
 
 router.post('/register', registerUser);
