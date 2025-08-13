@@ -1,9 +1,4 @@
-const {
-  createUser,
-  getUserById,
-  getUserByMobile,
-  verifyPassword
-} = require('../models/User.js');
+
 
 const {
   createWallet,
