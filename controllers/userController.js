@@ -1,9 +1,7 @@
-import { createUser, getUserById, getUserByMobile, verifyPassword } from '../models/user';
-
-import { createWallet, getWalletByUserId, updateWalletBalance } from '../models/Wallet';
-
-import { query } from '../models/db'; // ✅ Needed for password update and transactions
-import { hash } from 'bcrypt';   // ✅ Needed for hashing
+const { createUser, getUserById, getUserByMobile, verifyPassword } = require('../models/user');
+const { createWallet, getWalletByUserId, updateWalletBalance } = require('../models/Wallet');
+const { query } = require('../models/db');
+const { hash } = require('bcrypt');
 
 // Format timestamp to "6 Aug 2025, 12:16 AM"
 function formatDate(isoString) {
@@ -141,7 +139,6 @@ async function loginUser(req, res) {
   }
 }
 
-// ✅ Get formatted balance for a user
 async function getUserBalance(req, res) {
   try {
     const userId = req.params.id;
@@ -158,7 +155,6 @@ async function getUserBalance(req, res) {
   }
 }
 
-// ✅ Deposit funds into user wallet and log transaction
 async function depositToUser(req, res) {
   try {
     const userId = req.params.id;
@@ -176,10 +172,11 @@ async function depositToUser(req, res) {
     const depositAmount = parseFloat(amount);
     const newBalance = parseFloat(wallet.balance) + depositAmount;
 
-    // Update wallet balance
     await updateWalletBalance(userId, newBalance);
 
-    // Log transaction
+    const user = await getUserById(userId);
+    const paymentMethod = user.payment_method || resolvePaymentMethod(user.mobile);
+
     await query(
       `INSERT INTO sejjtransactions 
         (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
@@ -189,8 +186,8 @@ async function depositToUser(req, res) {
         wallet.id,
         depositAmount,
         newBalance,
-        resolvePaymentMethod(wallet.user_id), // or use user.mobile below
-        wallet.user_id, // This should be the mobile number of the user, fix below
+        paymentMethod,
+        user.mobile,
         'Deposit via API'
       ]
     );
@@ -202,7 +199,6 @@ async function depositToUser(req, res) {
   }
 }
 
-// ✅ Withdraw funds from user wallet and log transaction
 async function withdrawFromUser(req, res) {
   try {
     const userId = req.params.id;
@@ -226,14 +222,11 @@ async function withdrawFromUser(req, res) {
 
     const newBalance = currentBalance - withdrawalAmount;
 
-    // Update wallet balance
     await updateWalletBalance(userId, newBalance);
 
-    // Get user for mobile and payment method
     const user = await getUserById(userId);
     const paymentMethod = user.payment_method || resolvePaymentMethod(user.mobile);
 
-    // Log transaction
     await query(
       `INSERT INTO sejjtransactions 
         (user_id, wallet_id, amount, new_balance, transaction_type, payment_method, mobile, description) 
@@ -256,7 +249,6 @@ async function withdrawFromUser(req, res) {
   }
 }
 
-// ✅ Change user password with strength validation
 async function changeUserPassword(req, res) {
   try {
     const { mobile, currentPassword, newPassword } = req.body;
@@ -292,11 +284,11 @@ async function changeUserPassword(req, res) {
   }
 }
 
-export default {
+module.exports = {
   registerUser,
   loginUser,
   getUserBalance,
-  depositToUser,       // new deposit function
+  depositToUser,
   withdrawFromUser,
   changeUserPassword
 };
