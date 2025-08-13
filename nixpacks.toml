@@ -1,11 +1,5 @@
 [phases.setup]
 nixPkgs = ["nodejs", "pnpm"]
 
-[phases.install]
-cmds = ["pnpm install"]
-
-[phases.build]
-cmds = []
-
 [phases.start]
-cmds = ["pnpm start"]
+cmds = ["pnpm install && pnpm start"]
