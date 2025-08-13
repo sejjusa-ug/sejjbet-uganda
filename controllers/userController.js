@@ -1,6 +1,6 @@
 // Correct imports with exact filenames
 const { createUser, getUserById, getUserByMobile, verifyPassword } = require('../models/user'); // lowercase
-const { createWallet, getWalletByUserId, updateWalletBalance } = require('../models/Wallet');   // capital W
+const { createWallet, getWalletByUserId, updateWalletBalance } = require('../models/wallet');   // capital W
 const { query } = require('../models/db');                                                         // lowercase
 const { hash } = require('bcrypt');
 
