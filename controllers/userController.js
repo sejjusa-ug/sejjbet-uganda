@@ -3,7 +3,7 @@ const {
   getUserById,
   getUserByMobile,
   verifyPassword
-} = require('../models/user.j');
+} = require('../models/User.j');
 
 const {
   createWallet,
